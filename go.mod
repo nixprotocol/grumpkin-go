@@ -7,7 +7,7 @@ toolchain go1.24.5
 require (
 	github.com/consensys/gnark-crypto v0.19.2
 	github.com/cosmos/cosmos-sdk v0.50.15
-	github.com/nixprotocol/poseidon2-go v0.0.0-20260302113817-1223e4818a68
+	github.com/nixprotocol/poseidon2-go v0.1.0
 )
 
 require (
@@ -117,5 +117,3 @@ require (
 	pgregory.net/rapid v1.1.0 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
-
-replace github.com/nixprotocol/poseidon2-go => ../poseidon2-go
