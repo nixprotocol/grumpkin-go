@@ -21,23 +21,23 @@ type GrumpkinPrivKey struct {
 	Key []byte `json:"key"` // 64 bytes: compressed pubkey (32) || scalar (32)
 }
 
-// NewGrumpkinPrivKey creates a GrumpkinPrivKey from the given bytes.
-// It panics if key is not exactly [PrivKeySize] bytes. Use
-// [NewGrumpkinPrivKeyFromBytes] for an error-returning alternative.
-func NewGrumpkinPrivKey(key []byte) *GrumpkinPrivKey {
-	if len(key) != PrivKeySize {
-		panic(fmt.Sprintf("grumpkin privkey must be %d bytes, got %d", PrivKeySize, len(key)))
-	}
-	return &GrumpkinPrivKey{Key: key}
-}
-
-// NewGrumpkinPrivKeyFromBytes creates a GrumpkinPrivKey, returning an error
-// instead of panicking if the input is invalid.
-func NewGrumpkinPrivKeyFromBytes(key []byte) (*GrumpkinPrivKey, error) {
+// NewGrumpkinPrivKey creates a [GrumpkinPrivKey] from the given bytes.
+// Returns an error if key is not exactly [PrivKeySize] bytes.
+func NewGrumpkinPrivKey(key []byte) (*GrumpkinPrivKey, error) {
 	if len(key) != PrivKeySize {
 		return nil, fmt.Errorf("grumpkin privkey must be %d bytes, got %d", PrivKeySize, len(key))
 	}
 	return &GrumpkinPrivKey{Key: key}, nil
+}
+
+// MustNewGrumpkinPrivKey is like [NewGrumpkinPrivKey] but panics on error.
+// Use only with trusted, pre-validated input.
+func MustNewGrumpkinPrivKey(key []byte) *GrumpkinPrivKey {
+	sk, err := NewGrumpkinPrivKey(key)
+	if err != nil {
+		panic(err)
+	}
+	return sk
 }
 
 // GenerateKey generates a new random Grumpkin private key.
@@ -69,14 +69,25 @@ func (sk *GrumpkinPrivKey) Sign(msg []byte) ([]byte, error) {
 }
 
 // PubKey derives the corresponding [GrumpkinPubKey] from this private key.
-// It panics if the stored key material is corrupted and cannot be deserialized.
+// Returns nil if the stored key material is corrupted and cannot be
+// deserialized. Use [PubKeyE] for an error-returning alternative.
 func (sk *GrumpkinPrivKey) PubKey() cryptotypes.PubKey {
+	pk, err := sk.PubKeyE()
+	if err != nil {
+		return nil
+	}
+	return pk
+}
+
+// PubKeyE derives the corresponding [GrumpkinPubKey], returning an error if the
+// stored key material is corrupted.
+func (sk *GrumpkinPrivKey) PubKeyE() (*GrumpkinPubKey, error) {
 	var privKey grumpkinecdsa.PrivateKey
 	if _, err := privKey.SetBytes(sk.Key); err != nil {
-		panic(fmt.Sprintf("failed to deserialize grumpkin private key: %v", err))
+		return nil, fmt.Errorf("failed to deserialize grumpkin private key: %w", err)
 	}
 	pubBytes := rawXYFromPoint(&privKey.PublicKey.A)
-	return &GrumpkinPubKey{Key: pubBytes}
+	return &GrumpkinPubKey{Key: pubBytes}, nil
 }
 
 // Equals reports whether sk and other represent the same private key.

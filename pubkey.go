@@ -39,23 +39,10 @@ type GrumpkinPubKey struct {
 	Key []byte `json:"key"` // 64 bytes: X (32) || Y (32)
 }
 
-// NewGrumpkinPubKey creates a GrumpkinPubKey from validated bytes.
-// It panics if key is not exactly [PubKeySize] bytes or does not represent
-// a valid point on the Grumpkin curve. Use [NewGrumpkinPubKeyFromBytes] for
-// an error-returning alternative.
-func NewGrumpkinPubKey(key []byte) *GrumpkinPubKey {
-	if len(key) != PubKeySize {
-		panic(fmt.Sprintf("grumpkin pubkey must be %d bytes, got %d", PubKeySize, len(key)))
-	}
-	if _, err := pointFromRawXY(key); err != nil {
-		panic(fmt.Sprintf("grumpkin pubkey bytes are not a valid curve point: %v", err))
-	}
-	return &GrumpkinPubKey{Key: key}
-}
-
-// NewGrumpkinPubKeyFromBytes creates a GrumpkinPubKey, returning an error
-// instead of panicking if the input is invalid.
-func NewGrumpkinPubKeyFromBytes(key []byte) (*GrumpkinPubKey, error) {
+// NewGrumpkinPubKey creates a [GrumpkinPubKey] from the given bytes after
+// validating both the length and that the bytes represent a valid point on the
+// Grumpkin curve. Returns an error if the input is invalid.
+func NewGrumpkinPubKey(key []byte) (*GrumpkinPubKey, error) {
 	if len(key) != PubKeySize {
 		return nil, fmt.Errorf("grumpkin pubkey must be %d bytes, got %d", PubKeySize, len(key))
 	}
@@ -63,6 +50,16 @@ func NewGrumpkinPubKeyFromBytes(key []byte) (*GrumpkinPubKey, error) {
 		return nil, fmt.Errorf("grumpkin pubkey bytes are not a valid curve point: %w", err)
 	}
 	return &GrumpkinPubKey{Key: key}, nil
+}
+
+// MustNewGrumpkinPubKey is like [NewGrumpkinPubKey] but panics on error.
+// Use only with trusted, pre-validated input (e.g. from your own keygen).
+func MustNewGrumpkinPubKey(key []byte) *GrumpkinPubKey {
+	pk, err := NewGrumpkinPubKey(key)
+	if err != nil {
+		panic(err)
+	}
+	return pk
 }
 
 // pointFromRawXY reconstructs a G1Affine point from raw X||Y bytes (no metadata
@@ -90,6 +87,7 @@ func rawXYFromPoint(p *grumpkin.G1Affine) []byte {
 
 // Address returns the Cosmos SDK address derived as Poseidon2(pk.X, pk.Y)
 // truncated to 20 bytes. This gives a ZK-friendly address derivation path.
+// Returns nil if the key has invalid length.
 func (pk *GrumpkinPubKey) Address() cryptotypes.Address {
 	if len(pk.Key) != PubKeySize {
 		return nil
@@ -112,6 +110,7 @@ func (pk *GrumpkinPubKey) Bytes() []byte {
 }
 
 // VerifySignature verifies a Grumpkin ECDSA signature over the given message.
+// Returns false for any malformed key or signature.
 func (pk *GrumpkinPubKey) VerifySignature(msg []byte, sig []byte) bool {
 	if len(pk.Key) != PubKeySize {
 		return false

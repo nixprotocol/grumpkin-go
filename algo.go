@@ -74,11 +74,12 @@ func privKeyFromScalar(scalar fr.Element) ([]byte, error) {
 }
 
 // Generate returns a key generation function that wraps raw bytes into a
-// [GrumpkinPrivKey].
+// [GrumpkinPrivKey]. Returns nil if the input length is incorrect rather than
+// panicking, since callers should check the return value.
 func (grumpkinAlgo) Generate() hd.GenerateFn {
 	return func(bz []byte) cryptotypes.PrivKey {
 		if len(bz) != PrivKeySize {
-			panic(fmt.Sprintf("invalid seed length for grumpkin key generation: expected %d, got %d", PrivKeySize, len(bz)))
+			return nil
 		}
 		key := make([]byte, PrivKeySize)
 		copy(key, bz)
