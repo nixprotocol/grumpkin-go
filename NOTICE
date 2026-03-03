@@ -1,0 +1,10 @@
+grumpkin-go
+Copyright 2025 NixProtocol
+
+Website: https://nixprotocol.com
+GitHub:  https://github.com/nixprotocol
+
+Grumpkin elliptic-curve key types for Cosmos SDK chains.
+Originally developed as part of the NixProtocol privacy infrastructure.
+
+This product includes software developed by NixProtocol.
